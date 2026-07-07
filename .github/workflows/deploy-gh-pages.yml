@@ -1,0 +1,35 @@
+name: Build and deploy Blazor WASM to gh-pages
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish FF14Card.csproj -c Release -o publish
+
+      - name: Fix base href for project page
+        run: |
+          REPO=${{ github.event.repository.name }}
+          INDEX=publish/wwwroot/index.html
+          if [ -f "$INDEX" ]; then
+            sed -i "s|<base href=\"/\">|<base href=\"/${REPO}/\">|g" "$INDEX" || true
+          fi
+
+      - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./publish/wwwroot
+          keep_files: true
