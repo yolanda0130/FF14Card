@@ -1,0 +1,439 @@
+﻿@page "/image-canvas"
+@inject IJSRuntime JS
+
+<PageTitle>圖片拖曳畫布 - 多圖層版</PageTitle>
+
+<script src="/js/canvas.js"></script>
+
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; gap: 20px;">
+    <!-- 左側畫布 -->
+    <div style="flex: 1;">
+        <h1>🖼️ 圖片拖曳畫布 (多圖層)</h1>
+
+        <InputFile OnChange="HandleFileSelected" accept="image/*" style="margin-bottom: 10px;" />
+        <button @onclick="ClearCanvas">🗑️ 清除全部</button>
+        <button @onclick="DownloadCanvas">💾 下載圖片</button>
+        <button @onclick="ToggleCropMode">✂️ 裁切模式</button>
+        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" style="background:#0066ff;color:white;">✅ 套用裁切</button>
+        <button @onclick="CancelCrop">取消裁切</button>
+
+        <p style="color: #0066ff; margin: 10px 0;">@statusMessage</p>
+
+        <canvas id="myCanvas" width="1200" height="850"
+                style="border: 2px solid #666; background: #ffffff; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"></canvas>
+    </div>
+<!-- 右側圖層面板 -->
+<div style="width: 300px; background: #f9f9f9; padding: 15px; border-radius: 8px; max-height: 700px; overflow-y: auto;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            @foreach (var builtIn in builtInLayers)
+            {
+                @if(builtIn.Name != "定位")               
+                {
+                    <div style="display: flex; align-items: center; margin: 8px 0;">
+                        <input type="checkbox" checked="@builtIn.Visible"
+                               @onchange="() => CheckboxToggleBuiltInVisibility(builtIn)"
+                               style="margin-right: 10px; transform: scale(1.3);" />
+                        <span>@builtIn.Name</span>
+                    </div>
+                }
+
+            }
+        </div>
+    <h3>📚 圖層列表 (@userLayers.Count 張)</h3>
+        <div style="margin-bottom: 20px;">
+            <label><strong>選擇想要的窗戶：</strong></label><br>
+            <select @onchange="WindowChanged"
+                    style="padding: 10px; font-size: 16px; width: 200px;">
+                <option value="0">A</option>
+                <option value="1">B</option>
+                <option value="2">C</option>
+                <option value="3">D</option>
+            </select>
+        </div>
+    <div style="margin-bottom: 12px;">
+        <button @onclick="BringToFront">↑ 最上層</button>
+        <button @onclick="SendToBack">↓ 最下層</button>
+        <button @onclick="DeleteSelected" style="background: #ff4444; color: white;">🗑️ 刪除</button>
+    </div>
+        <ul id="layerList" style="list-style: none; padding: 0;">
+            @foreach (var layer in userLayers)
+            {
+                <li class="layer-item" data-id="@layer.Id"
+                    @onclick="() => SelectLayer(layer)"
+                    style="padding: 10px; margin: 6px 0; background: @(selectedLayer == layer ? "#cce6ff" : "#fff");
+                    border: 1px solid #ddd; border-radius: 6px; cursor: grab; display: flex; align-items: center;">
+
+                    <!-- 眼睛圖示 -->
+                    <span @onclick="() => { ToggleVisibility(layer); }"
+                          @onclick:stopPropagation
+                          style="margin-right: 8px; font-size: 18px; cursor: pointer; width: 24px;">
+                        @(layer.Visible ? "👁️" : "🙈")
+                    </span>
+
+                    <span style="flex: 1;">📄 @layer.Name</span>
+
+                    @if (selectedLayer == layer)
+                    {
+                        <span style="color: #0066ff;">●</span>
+                    }
+                </li>
+            }
+        </ul>
+        <!-- No-op patch: updated file in workspace after removing draggable attributes -->
+</div>
+</div>
+
+@code {
+    private string statusMessage = "✅ 準備就緒！請上傳圖片";
+    private List<Layer> builtInLayers = new();   // 內建圖片
+    private List<Layer> userLayers = new();      // 用戶上傳的圖片
+    private Layer? selectedLayer;
+    private double selectedWidth ;
+    private double selectedHeight ;
+    private List<string> modImageUrls = new();
+    private List<string> positionImageUrls = new();
+    private bool cropMode = false;
+    private bool IsCropAvailable => cropMode && selectedLayer != null;
+    private DotNetObjectReference<ImageCanvas>? dotNetRef;
+
+    [JSInvokable]
+    public void ReceiveLayerOrder(string[] newOrder)
+    {
+        if (newOrder == null || newOrder.Length == 0) return;
+
+        // Reorder userLayers to match newOrder (preserve any missing items at end)
+        var map = userLayers.ToDictionary(l => l.Id);
+        var newList = new List<Layer>();
+        foreach (var id in newOrder)
+        {
+            if (map.TryGetValue(id, out var layer))
+            {
+                newList.Add(layer);
+                map.Remove(id);
+            }
+        }
+        // append any remaining user layers (shouldn't normally happen)
+        foreach (var kv in map)
+        {
+            newList.Add(kv.Value);
+        }
+
+        userLayers = newList;
+
+        // ensure selectedLayer reference remains valid
+        if (selectedLayer != null)
+        {
+            selectedLayer = userLayers.FirstOrDefault(l => l.Id == selectedLayer.Id) ?? selectedLayer;
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void JsSelectLayer(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        var layer = userLayers.FirstOrDefault(l => l.Id == id);
+        if (layer != null)
+        {
+            selectedLayer = layer;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private class Layer
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Name { get; set; } = "";
+        public string DataUrl { get; set; } = "";
+        public bool Visible { get; set; } = true;   // 新增
+    }
+
+    private async Task ToggleCropMode()
+    {
+        cropMode = !cropMode;
+        if (cropMode)
+        {
+            await JS.InvokeVoidAsync("enableCropMode", "myCanvas");
+            statusMessage = "✂️ 裁切模式啟用：請拖曳在畫布上畫出裁切框，完成後按「套用裁切」";
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("disableCropMode", "myCanvas");
+            statusMessage = "✅ 已離開裁切模式";
+        }
+        StateHasChanged();
+    }
+
+    private async Task ApplyCrop()
+    {
+        if (selectedLayer == null) return;
+        await JS.InvokeVoidAsync("applyCropToSelected", "myCanvas", selectedLayer.Id);
+        // JS 端已替換圖像之後，可視需要重新整理狀態
+        cropMode = false;
+        await JS.InvokeVoidAsync("disableCropMode", "myCanvas");
+        statusMessage = "✂️ 已套用裁切";
+        StateHasChanged();
+    }
+
+    private async Task CancelCrop()
+    {
+        cropMode = false;
+        await JS.InvokeVoidAsync("disableCropMode", "myCanvas");
+        statusMessage = "已取消裁切";
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 不在此載入內建圖片，改為在 OnAfterRenderAsync firstRender 時載入
+        await Task.CompletedTask;
+    }
+
+    private async Task AddBuiltInImage(string name, string url)
+    {
+        // Avoid adding duplicates
+        if (builtInLayers.Any(b => b.Name == name || b.DataUrl == url))
+            return;
+
+        var layer = new Layer
+        {
+            Name = name,
+            DataUrl = url,
+            Visible = true
+        };
+
+        builtInLayers.Add(layer);
+
+        // 傳入畫布尺寸，讓 JS 調整為填滿。傳遞第四個參數 true 表示此為內建圖層
+        await JS.InvokeVoidAsync("addFullSizeImage", "myCanvas", url, layer.Id, true);
+    }
+
+    private async Task WindowChanged(ChangeEventArgs e)
+    {
+        var selectedValue = int.TryParse(e.Value?.ToString(), out int result);
+     
+        var modid = builtInLayers.FirstOrDefault(l => l.Name == "刀模")?.Id;
+        var positionid = builtInLayers.FirstOrDefault(l => l.Name == "定位")?.Id;
+        if (selectedValue)
+        {
+            await JS.InvokeVoidAsync("replaceImage", "myCanvas", modImageUrls[result], modid);
+            await JS.InvokeVoidAsync("replaceImage", "myCanvas", positionImageUrls[result], positionid);
+        }
+        else
+        {
+            statusMessage = "❌ 選擇的窗戶無效 請截圖告知開發人員";
+        }
+    }
+
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            using var stream = file.OpenReadStream(15 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            var dataUrl = $"data:{file.ContentType};base64,{base64}";
+
+            var layer = new Layer
+            {
+                Name = file.Name,
+                DataUrl = dataUrl,
+                Visible = true
+            };
+
+            userLayers.Insert(0, layer);  // 插入到最前面（下方）
+            selectedLayer = layer;
+
+            await JS.InvokeVoidAsync("addImageBelow", "myCanvas", dataUrl, layer.Id);
+            await JS.InvokeVoidAsync("setSelectedLayer", layer.Id);
+
+            statusMessage = $"✅ 已加入 {file.Name}";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"❌ 上傳失敗：{ex.Message}";
+        }
+    }
+
+    private void SelectLayer(Layer layer)
+    {
+        selectedLayer = layer;
+        JS.InvokeVoidAsync("setSelectedLayer", layer.Id);
+    }
+
+    private async Task BringToFront()
+    {
+        // Move selected layer one step up (towards top of list)
+        if (selectedLayer == null) return;
+        var idx = userLayers.IndexOf(selectedLayer);
+        if (idx > 0)
+        {
+            userLayers.RemoveAt(idx);
+            userLayers.Insert(idx - 1, selectedLayer);
+            // notify JS of new order
+            var newOrder = userLayers.Select(l => l.Id).ToArray();
+            await JS.InvokeVoidAsync("updateLayerOrder", (object)newOrder);
+            // 只使用 updateLayerOrder 同步 zIndex，避免與 moveLayerUp 產生 race condition
+            await JS.InvokeVoidAsync("setSelectedLayer", selectedLayer.Id);
+            StateHasChanged();
+        }
+    }
+
+    private async Task SendToBack()
+    {
+        // Move selected layer one step down (towards bottom of list)
+        if (selectedLayer == null) return;
+        var idx = userLayers.IndexOf(selectedLayer);
+        if (idx >= 0 && idx < userLayers.Count - 1)
+        {
+            userLayers.RemoveAt(idx);
+            userLayers.Insert(idx + 1, selectedLayer);
+            var newOrder = userLayers.Select(l => l.Id).ToArray();
+            await JS.InvokeVoidAsync("updateLayerOrder", (object)newOrder);
+            // 只使用 updateLayerOrder 同步 zIndex，避免與 moveLayerDown 產生 race condition
+            await JS.InvokeVoidAsync("setSelectedLayer", selectedLayer.Id);
+            StateHasChanged();
+        }
+    }
+
+
+
+    private async Task DeleteSelected()
+    {
+        if (selectedLayer == null) return;
+
+        if (!await JS.InvokeAsync<bool>("confirm", $"確定刪除「{selectedLayer.Name}」？"))
+            return;
+
+        await JS.InvokeVoidAsync("deleteLayer", "myCanvas", selectedLayer.Id);
+
+        userLayers.Remove(selectedLayer);
+        selectedLayer = userLayers.LastOrDefault();
+
+        if (selectedLayer != null)
+            await JS.InvokeVoidAsync("setSelectedLayer", selectedLayer.Id);
+
+        StateHasChanged();
+        statusMessage = "🗑️ 已刪除";
+    }
+
+    private async Task ClearCanvas()
+    {
+        userLayers.Clear();
+        selectedLayer = null;
+        await JS.InvokeVoidAsync("clearCanvas", "myCanvas");
+        statusMessage = "畫布已清除";
+        StateHasChanged();
+    }
+
+    private async Task DownloadCanvas()
+    {
+        const int targetWidth = 7016;   // 橫向 A4 @ 600 DPI
+        const int targetHeight = 4960;
+
+        await JS.InvokeVoidAsync("downloadHighResA4", "myCanvas", targetWidth, targetHeight);
+        statusMessage = "💾 已下載超高解析 A4 圖片 (7016 × 4960)";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // register DotNet ref and ensure JS functions are available before calling
+            dotNetRef = DotNetObjectReference.Create(this);
+
+            // wait until registerDotNetRef exists (script tag may not have loaded yet)
+            var maxMs = 3000;
+            var waited = 0;
+            var available = false;
+            while (waited < maxMs)
+            {
+                try
+                {
+                    available = await JS.InvokeAsync<bool>("eval", "typeof window.registerDotNetRef === 'function'");
+                }
+                catch
+                {
+                    available = false;
+                }
+                if (available) break;
+                await Task.Delay(100);
+                waited += 100;
+            }
+
+            if (available)
+            {
+                await JS.InvokeVoidAsync("registerDotNetRef", dotNetRef);
+                // 禁用列表拖拉 (使用按鈕控制圖層)
+                try { await JS.InvokeVoidAsync("eval", "document.getElementById('layerList').dataset.sortable='false'"); } catch { }
+            }
+
+            // ensure sortable is initialized after render
+            try { await JS.InvokeVoidAsync("makeLayerListSortable", "layerList"); } catch { }
+
+            // now add built-in images via JS (do this after JS is ready)
+            try
+            {
+                await AddBuiltInImage("刀模", "/images/window/抽拉換圖卡-A刀模.png");
+                await AddBuiltInImage("定位", "/images/window/抽拉換圖卡-A定位.png");
+
+                statusMessage = "✅ 已載入兩張內建圖片（固定最上層）";
+                modImageUrls.Add("/images/window/抽拉換圖卡-A刀模.png");
+                positionImageUrls.Add("/images/window/抽拉換圖卡-A定位.png");
+                modImageUrls.Add("/images/window/抽拉換圖卡-B刀模.png");
+                positionImageUrls.Add("/images/window/抽拉換圖卡-B定位.png");
+                modImageUrls.Add("/images/window/抽拉換圖卡-C刀模.png");
+                positionImageUrls.Add("/images/window/抽拉換圖卡-C定位.png");
+                modImageUrls.Add("/images/window/抽拉換圖卡-D刀模.png");
+                positionImageUrls.Add("/images/window/抽拉換圖卡-D定位.png");
+                StateHasChanged();
+            }
+            catch
+            {
+                // ignore if JS not ready; user can retry
+            }
+        }
+        else
+        {
+            // ensure sortable re-initialized after subsequent renders
+            try { await JS.InvokeVoidAsync("makeLayerListSortable", "layerList"); } catch { }
+        }
+    }
+
+    private void ToggleVisibilityHandler(Layer layer)
+    {
+        ToggleVisibility(layer);
+    }
+
+    private async Task ToggleVisibility(Layer layer)
+    {
+        layer.Visible = !layer.Visible;
+
+        await JS.InvokeVoidAsync("toggleLayerVisibility", "myCanvas", layer.Id, layer.Visible);
+
+        // 避免點擊眼睛時觸發選取
+        StateHasChanged();
+    }
+
+    private async Task CheckboxToggleBuiltInVisibility(Layer layer)
+    {
+        layer.Visible = !layer.Visible;
+        await JS.InvokeVoidAsync("toggleLayerVisibility", "myCanvas", layer.Id, layer.Visible);
+        StateHasChanged();
+    }
+
+    private void CheckboxToggleVisibility(Layer layer)
+    {
+        layer.Visible = !layer.Visible;
+        JS.InvokeVoidAsync("toggleLayerVisibility", "myCanvas", layer.Id, layer.Visible);
+        StateHasChanged();
+    }
+}
