@@ -730,60 +730,61 @@ function updateCursor(mouseX, mouseY) {
 }
 
 function handleResize(img, mouseX, mouseY) {
-    // ... 保持上一個版本的 handleResize ...
+    // 調整為以 scale 為唯一變更量，保持 img.width/img.height 為原始像素尺寸
     const currentW = img.width * img.scale;
     const currentH = img.height * img.scale;
-    const ratio = currentW / currentH;   // 原始長寬比
-    let newW, newH;
+    const ratio = img.width / img.height; // 原始比例（寬/高）
+    let newDisplayW, newDisplayH;
+    const MIN_DISPLAY = 30;
+    const MIN_SCALE = 0.01;
 
     switch (resizeDirection) {
         case 'se': // 右下角 - 等比
-            newW = Math.max(50, mouseX - img.x);
-            newH = newW / ratio;
-            img.width = newW / img.scale;
-            img.height = newH / img.scale;
+            newDisplayW = Math.max(50, mouseX - img.x);
+            newDisplayH = Math.max(50, newDisplayW / ratio);
+            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
             break;
 
         case 'nw': // 左上角 - 等比
-            newW = Math.max(50, currentW - (mouseX - img.x));
-            newH = newW / ratio;
+            newDisplayW = Math.max(50, currentW - (mouseX - img.x));
+            newDisplayH = Math.max(50, newDisplayW / ratio);
+            // 調整位置到新的左上角
             img.x = mouseX;
             img.y = mouseY;
-            img.width = newW / img.scale;
-            img.height = newH / img.scale;
+            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
             break;
 
         case 'ne': // 右上角 - 等比
-            newW = Math.max(50, mouseX - img.x);
-            newH = newW / ratio;
+            newDisplayW = Math.max(50, mouseX - img.x);
+            newDisplayH = Math.max(50, newDisplayW / ratio);
             img.y = mouseY;
-            img.width = newW / img.scale;
-            img.height = newH / img.scale;
+            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
             break;
 
         case 'sw': // 左下角 - 等比
-            newW = Math.max(50, currentW - (mouseX - img.x));
-            newH = newW / ratio;
+            newDisplayW = Math.max(50, currentW - (mouseX - img.x));
+            newDisplayH = Math.max(50, newDisplayW / ratio);
             img.x = mouseX;
-            img.width = newW / img.scale;
-            img.height = newH / img.scale;
+            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
             break;
-        // ... 其他方向保持不變 ...
+
         case 'n':
-            const nH = Math.max(30, currentH - (mouseY - img.y));
+            newDisplayH = Math.max(MIN_DISPLAY, currentH - (mouseY - img.y));
             img.y = mouseY;
-            img.height = nH / img.scale;
+            img.scale = Math.max(MIN_SCALE, newDisplayH / img.height);
             break;
         case 's':
-            img.height = Math.max(30, (mouseY - img.y) / img.scale);
+            newDisplayH = Math.max(MIN_DISPLAY, mouseY - img.y);
+            img.scale = Math.max(MIN_SCALE, newDisplayH / img.height);
             break;
         case 'w':
-            const wW = Math.max(30, currentW - (mouseX - img.x));
+            newDisplayW = Math.max(MIN_DISPLAY, currentW - (mouseX - img.x));
             img.x = mouseX;
-            img.width = wW / img.scale;
+            img.scale = Math.max(MIN_SCALE, newDisplayW / img.width);
             break;
         case 'e':
-            img.width = Math.max(30, (mouseX - img.x) / img.scale);
+            newDisplayW = Math.max(MIN_DISPLAY, mouseX - img.x);
+            img.scale = Math.max(MIN_SCALE, newDisplayW / img.width);
             break;
     }
 }
