@@ -285,6 +285,8 @@ window.clearCanvas = function () {
 };
 
 window.downloadHighResA4 = function (canvasId, targetWidth, targetHeight) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
 
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = targetWidth;
@@ -294,29 +296,59 @@ window.downloadHighResA4 = function (canvasId, targetWidth, targetHeight) {
     tempCtx.fillStyle = '#ffffff';
     tempCtx.fillRect(0, 0, targetWidth, targetHeight);
 
-    const scale = Math.min(targetWidth / canvas.width, targetHeight / canvas.height) * 0.98;
+    const scale = Math.min(targetWidth / canvas.width, targetHeight / canvas.height) * 0.96;
+
+    const drawWidth = Math.round(canvas.width * scale);
+    const drawHeight = Math.round(canvas.height * scale);
+    let offsetX = Math.round((targetWidth - drawWidth) / 2);
+    const offsetY = Math.round((targetHeight - drawHeight) / 2);
+
+    // 使用中間畫布
+    const contentCanvas = document.createElement('canvas');
+    contentCanvas.width = drawWidth;
+    contentCanvas.height = drawHeight;
+    const contentCtx = contentCanvas.getContext('2d', { alpha: false });
+
+    contentCtx.fillStyle = '#ffffff';
+    contentCtx.fillRect(0, 0, drawWidth, drawHeight);
+
+    contentCtx.save();
+
+    // 左邊加強裁切（針對你左邊溢色的問題）
+    const insetLeft = 4;   // 左邊特別加大
+    const insetOther = 2;
+    contentCtx.beginPath();
+    contentCtx.rect(insetLeft, insetOther,
+        drawWidth - insetLeft - insetOther,
+        drawHeight - insetOther * 2);
+    contentCtx.clip();
+
+    contentCtx.imageSmoothingEnabled = true;
+    contentCtx.imageSmoothingQuality = 'high';
 
     const sortedImages = [...images].sort((a, b) => a.zIndex - b.zIndex);
 
     sortedImages.forEach((img, index) => {
-        // ==================== 排除刀模====================
-        if (index === sortedImages.length - 2) {
-            return;
-        }
-        // 正常繪製後續上傳的圖片
+        if (index === sortedImages.length - 2) return;
+
         const newX = img.x * scale;
         const newY = img.y * scale;
         const newWidth = img.width * img.scale * scale;
         const newHeight = img.height * img.scale * scale;
 
-        tempCtx.drawImage(img.element, newX, newY, newWidth, newHeight);
+        contentCtx.drawImage(img.element, newX, newY, newWidth, newHeight);
     });
+    contentCtx.restore();
 
+    // 最終貼上（再往右微調一點）
+    offsetX += 1;   // 左邊再推一點
+    tempCtx.drawImage(contentCanvas, offsetX, offsetY);
+
+    // 下載
     const link = document.createElement('a');
-    link.download = `A4_橫式_${new Date().toISOString().slice(0, 10)}_高解析.png`;
+    link.download = `A4_橫式_${new Date().toISOString().slice(0, 10)}.png`;
     link.href = tempCanvas.toDataURL('image/png', 1.0);
     link.click();
-
 };
 
 // ==================== 拖曳 + 四角/四邊調整 + 游標提示 ====================
@@ -730,61 +762,60 @@ function updateCursor(mouseX, mouseY) {
 }
 
 function handleResize(img, mouseX, mouseY) {
-    // 調整為以 scale 為唯一變更量，保持 img.width/img.height 為原始像素尺寸
+    // ... 保持上一個版本的 handleResize ...
     const currentW = img.width * img.scale;
     const currentH = img.height * img.scale;
-    const ratio = img.width / img.height; // 原始比例（寬/高）
-    let newDisplayW, newDisplayH;
-    const MIN_DISPLAY = 30;
-    const MIN_SCALE = 0.01;
+    const ratio = currentW / currentH;   // 原始長寬比
+    let newW, newH;
 
     switch (resizeDirection) {
         case 'se': // 右下角 - 等比
-            newDisplayW = Math.max(50, mouseX - img.x);
-            newDisplayH = Math.max(50, newDisplayW / ratio);
-            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
+            newW = Math.max(50, mouseX - img.x);
+            newH = newW / ratio;
+            img.width = newW / img.scale;
+            img.height = newH / img.scale;
             break;
 
         case 'nw': // 左上角 - 等比
-            newDisplayW = Math.max(50, currentW - (mouseX - img.x));
-            newDisplayH = Math.max(50, newDisplayW / ratio);
-            // 調整位置到新的左上角
+            newW = Math.max(50, currentW - (mouseX - img.x));
+            newH = newW / ratio;
             img.x = mouseX;
             img.y = mouseY;
-            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
+            img.width = newW / img.scale;
+            img.height = newH / img.scale;
             break;
 
         case 'ne': // 右上角 - 等比
-            newDisplayW = Math.max(50, mouseX - img.x);
-            newDisplayH = Math.max(50, newDisplayW / ratio);
+            newW = Math.max(50, mouseX - img.x);
+            newH = newW / ratio;
             img.y = mouseY;
-            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
+            img.width = newW / img.scale;
+            img.height = newH / img.scale;
             break;
 
         case 'sw': // 左下角 - 等比
-            newDisplayW = Math.max(50, currentW - (mouseX - img.x));
-            newDisplayH = Math.max(50, newDisplayW / ratio);
+            newW = Math.max(50, currentW - (mouseX - img.x));
+            newH = newW / ratio;
             img.x = mouseX;
-            img.scale = Math.max(MIN_SCALE, Math.min(newDisplayW / img.width, newDisplayH / img.height));
+            img.width = newW / img.scale;
+            img.height = newH / img.scale;
             break;
-
+        // ... 其他方向保持不變 ...
         case 'n':
-            newDisplayH = Math.max(MIN_DISPLAY, currentH - (mouseY - img.y));
+            const nH = Math.max(30, currentH - (mouseY - img.y));
             img.y = mouseY;
-            img.scale = Math.max(MIN_SCALE, newDisplayH / img.height);
+            img.height = nH / img.scale;
             break;
         case 's':
-            newDisplayH = Math.max(MIN_DISPLAY, mouseY - img.y);
-            img.scale = Math.max(MIN_SCALE, newDisplayH / img.height);
+            img.height = Math.max(30, (mouseY - img.y) / img.scale);
             break;
         case 'w':
-            newDisplayW = Math.max(MIN_DISPLAY, currentW - (mouseX - img.x));
+            const wW = Math.max(30, currentW - (mouseX - img.x));
             img.x = mouseX;
-            img.scale = Math.max(MIN_SCALE, newDisplayW / img.width);
+            img.width = wW / img.scale;
             break;
         case 'e':
-            newDisplayW = Math.max(MIN_DISPLAY, mouseX - img.x);
-            img.scale = Math.max(MIN_SCALE, newDisplayW / img.width);
+            img.width = Math.max(30, (mouseX - img.x) / img.scale);
             break;
     }
 }

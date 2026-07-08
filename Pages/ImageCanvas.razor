@@ -14,12 +14,12 @@
         <button @onclick="ClearCanvas">🗑️ 清除全部</button>
         <button @onclick="DownloadCanvas">💾 下載圖片</button>
         <button @onclick="ToggleCropMode">✂️ 裁切模式</button>
-        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" style="background:#0066ff;color:white;">✅ 套用裁切</button>
-        <button @onclick="CancelCrop">取消裁切</button>
+        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" hidden="@(!cropMode)">✅ 套用裁切</button>
+        <button @onclick="CancelCrop" hidden="@(!cropMode)">取消裁切</button>
 
         <p style="color: #0066ff; margin: 10px 0;">@statusMessage</p>
 
-        <canvas id="myCanvas" width="1200" height="850"
+        <canvas id="myCanvas" width="7016" height="4961"
                 style="border: 2px solid #666; background: #ffffff; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"></canvas>
     </div>
 <!-- 右側圖層面板 -->
@@ -337,10 +337,10 @@
     private async Task DownloadCanvas()
     {
         const int targetWidth = 7016;   // 橫向 A4 @ 600 DPI
-        const int targetHeight = 4960;
+        const int targetHeight = 4961;
 
         await JS.InvokeVoidAsync("downloadHighResA4", "myCanvas", targetWidth, targetHeight);
-        statusMessage = "💾 已下載超高解析 A4 圖片 (7016 × 4960)";
+        statusMessage = "💾 已下載圖片";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -382,12 +382,12 @@
             // now add built-in images via JS (do this after JS is ready)
             try
             {
-                await AddBuiltInImage("刀模", "images/window/抽拉換圖卡-A刀模.png");
-                await AddBuiltInImage("定位", "images/window/抽拉換圖卡-A定位.png");
+                await AddBuiltInImage("刀模", "images/window/刀模A.svg");
+                await AddBuiltInImage("定位", "images/window/定位A.svg");
 
                 statusMessage = "✅ 已載入兩張內建圖片（固定最上層）";
-                modImageUrls.Add("images/window/抽拉換圖卡-A刀模.png");
-                positionImageUrls.Add("images/window/抽拉換圖卡-A定位.png");
+                modImageUrls.Add("images/window/刀模A.svg");
+                positionImageUrls.Add("images/window/定位A.svg");
                 modImageUrls.Add("images/window/抽拉換圖卡-B刀模.png");
                 positionImageUrls.Add("images/window/抽拉換圖卡-B定位.png");
                 modImageUrls.Add("images/window/抽拉換圖卡-C刀模.png");
