@@ -19,12 +19,19 @@ jobs:
       - name: Publish Blazor WebAssembly
         run: dotnet publish FF14Card.csproj -c Release -o publish
 
-      - name: Fix base href for project page
+      - name: Fix base href for GitHub Pages
         run: |
           REPO=${{ github.event.repository.name }}
           INDEX=publish/wwwroot/index.html
+          
           if [ -f "$INDEX" ]; then
-            sed -i "s|<base href=\"/\">|<base href=\"/${REPO}/\">|g" "$INDEX" || true
+            echo "🔧 正在修改 base href 為 /${REPO}/"
+            sed -i "s|<base href=\"/\">|<base href=\"/${REPO}/\">|g" "$INDEX"
+            sed -i "s|<base href=\"/\" />|<base href=\"/${REPO}/\" />|g" "$INDEX"   # 兼容不同寫法
+            echo "✅ 修改完成："
+            grep -o '<base href="[^"]*"' "$INDEX"
+          else
+            echo "⚠️ 找不到 index.html"
           fi
 
       - name: Deploy to GitHub Pages (gh-pages branch)
