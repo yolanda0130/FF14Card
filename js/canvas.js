@@ -194,6 +194,8 @@ window.addFullSizeImage = function (canvasId, dataUrl, id) {
         const scaleY = canvasHeight / img.height;
         const scale = Math.min(scaleX, scaleY);  // 保持比例填滿
 
+        const imgname = dataUrl.includes("刀模");
+
         const newImg = {
             id: id,
             element: img,
@@ -204,7 +206,8 @@ window.addFullSizeImage = function (canvasId, dataUrl, id) {
             scale: scale,
             visible: true,
             builtIn: !!builtIn,
-            zIndex: images.length
+            zIndex: images.length,
+            Name: imgname
         };
 
         images.push(newImg);
@@ -329,7 +332,7 @@ window.downloadHighResA4 = function (canvasId, targetWidth, targetHeight) {
     const sortedImages = [...images].sort((a, b) => a.zIndex - b.zIndex);
 
     sortedImages.forEach((img, index) => {
-        if (index === sortedImages.length - 2) return;
+        if (img.Name) return;
 
         const newX = img.x * scale;
         const newY = img.y * scale;
@@ -345,9 +348,18 @@ window.downloadHighResA4 = function (canvasId, targetWidth, targetHeight) {
     tempCtx.drawImage(contentCanvas, offsetX, offsetY);
 
     // 下載
+    let dataUrl = tempCanvas.toDataURL('image/png', 1.0);
+
+    // 壓縮直到小於 15MB
+    let attempts = 0;
+    while (dataUrl.length * 0.75 > 15 * 1024 * 1024 && attempts < 10) {
+        attempts++;
+        dataUrl = tempCanvas.toDataURL('image/png', 1.0 - attempts * 0.08);
+    }
+
     const link = document.createElement('a');
     link.download = `A4_橫式_${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = tempCanvas.toDataURL('image/png', 1.0);
+    link.href = dataUrl;
     link.click();
 };
 
@@ -851,12 +863,31 @@ function onMouseUp() {
 
 function onWheel(e) {
     if (!selectedImageId) return;
+
     const img = images.find(i => i.id === selectedImageId);
     if (!img) return;
+
     e.preventDefault();
-    const delta = e.deltaY < 0 ? 1.1 : 0.9;
-    img.scale *= delta;
-    if (img.scale < 0.1) img.scale = 0.1;
+
+    // 決定縮放方向
+    const zoomIn = e.deltaY < 0;
+    const factor = zoomIn ? 1.08 : 0.925;   // 可調整縮放速度
+
+    // === 關鍵：以圖片中心點縮放 ===
+    const oldScale = img.scale;
+    const newScale = oldScale * factor;
+
+    // 限制縮放範圍
+    img.scale = Math.max(0.1, Math.min(newScale, 10));
+
+    // 計算縮放前後的中心點偏移，讓中心保持不動
+    const centerX = img.x + (img.width * oldScale) / 2;
+    const centerY = img.y + (img.height * oldScale) / 2;
+
+    // 更新位置，讓中心點維持在相同位置
+    img.x = centerX - (img.width * img.scale) / 2;
+    img.y = centerY - (img.height * img.scale) / 2;
+
     redraw();
 }
 
@@ -1407,12 +1438,13 @@ window.addImageBelow = function (canvasId, dataUrl, id) {
     const img = new Image();
     img.onload = function () {
         const scale = Math.min(0.9, 600 / Math.max(img.width, img.height));
-
+        const centerX = (canvas.width - img.width * scale) / 2;   // 注意：scale 要先計算
+        const centerY = (canvas.height - img.height * scale) / 2;
         const newImg = {
             id: id,
             element: img,
-            x: 100 + Math.random() * 100,
-            y: 80 + Math.random() * 80,
+            x: centerX,
+            y: centerY,
             width: img.width,
             height: img.height,
             scale: scale,
