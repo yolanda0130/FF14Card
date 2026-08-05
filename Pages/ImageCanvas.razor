@@ -1,5 +1,10 @@
 ﻿@page "/image-canvas"
 @inject IJSRuntime JS
+@using FF14Card.Class
+@using FF14Card.Services
+@inject CanvasStateService CanvasState
+@implements IDisposable
+@using System.Text.Json
 
 <PageTitle>圖片拖曳畫布 - 多圖層版</PageTitle>
 
@@ -12,7 +17,7 @@
 
         <InputFile OnChange="HandleFileSelected" accept="image/*" style="margin-bottom: 10px;" />
         <button @onclick="ClearCanvas">🗑️ 清除全部</button>
-        <button @onclick="DownloadCanvas">💾 下載圖片</button>
+        <button @onclick="DownloadCanvasAsync">💾 下載圖片</button>
         <button @onclick="ToggleCropMode">✂️ 裁切模式</button>
         <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" hidden="@(!cropMode)">✅ 套用裁切</button>
         <button @onclick="CancelCrop" hidden="@(!cropMode)">取消裁切</button>
@@ -94,7 +99,8 @@
     private List<string> positionImageUrls = new();
     private bool cropMode = false;
     private bool IsCropAvailable => cropMode && selectedLayer != null;
-    private DotNetObjectReference<ImageCanvas>? dotNetRef;
+    private DotNetObjectReference<ImageCanvas>? dotNetRef;// 改成你的 class 名稱
+    private IJSObjectReference? module;
 
     [JSInvokable]
     public void ReceiveLayerOrder(string[] newOrder)
@@ -141,13 +147,7 @@
         }
     }
 
-    private class Layer
-    {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
-        public string Name { get; set; } = "";
-        public string DataUrl { get; set; } = "";
-        public bool Visible { get; set; } = true;   // 新增
-    }
+
 
     private async Task ToggleCropMode()
     {
@@ -187,6 +187,7 @@
     protected override async Task OnInitializedAsync()
     {
         // 不在此載入內建圖片，改為在 OnAfterRenderAsync firstRender 時載入
+        CanvasState.OnStateChanged += StateHasChanged;
         await Task.CompletedTask;
     }
 
@@ -205,8 +206,76 @@
 
         builtInLayers.Add(layer);
 
+        // 確保 canvas.js 已加載並初始化
+        try
+        {
+            // 調用 JS 以確保 canvas 已初始化
+            await JS.InvokeVoidAsync("eval", "if (typeof init === 'function') init();");
+        }
+        catch { }
+
         // 傳入畫布尺寸，讓 JS 調整為填滿。傳遞第四個參數 true 表示此為內建圖層
         await JS.InvokeVoidAsync("addFullSizeImage", "myCanvas", url, layer.Id, true);
+    }
+
+    /// <summary>
+    /// 初始化所有窗戶的圖片 URL 列表
+    /// </summary>
+    private void InitializeWindowUrls()
+    {
+        if (modImageUrls.Count > 0) return; // 已初始化過
+
+        modImageUrls.Add("images/window/抽拉換圖卡-A刀模.svg");
+        positionImageUrls.Add("images/window/抽拉換圖卡-A定位.svg");
+        modImageUrls.Add("images/window/抽拉換圖卡-B刀模.svg");
+        positionImageUrls.Add("images/window/抽拉換圖卡-B定位.svg");
+        modImageUrls.Add("images/window/抽拉換圖卡-C刀模.svg");
+        positionImageUrls.Add("images/window/抽拉換圖卡-C定位.svg");
+        modImageUrls.Add("images/window/抽拉換圖卡-D刀模.svg");
+        positionImageUrls.Add("images/window/抽拉換圖卡-D定位.svg");
+    }
+
+    /// <summary>
+    /// 從 CanvasState.Layers 中恢復 builtInLayers
+    /// </summary>
+    private async Task RestoreBuiltInLayers()
+    {
+        if (builtInLayers.Count > 0) 
+        {
+
+            return; // 已經恢復過
+        }
+
+
+        int restoredCount = 0;
+
+        foreach (var layerItem in CanvasState.Layers.Where(l => l.IsBuiltIn))
+        {
+            // 使用 JsLayerId（這是首次加載時用 Layer.Id 保存的）
+            // 這確保了 JavaScript 側的 id 和 C# 側的 Layer.Id 一致
+            var jsId = layerItem.JsLayerId;
+            if (string.IsNullOrEmpty(jsId))
+            {
+                // 備用：如果 JsLayerId 為空，嘗試用 Guid 轉換（但這可能不會匹配原始的 Layer.Id）
+                jsId = layerItem.Id.ToString();
+
+            }
+
+            var layer = new Layer
+            {
+                Id = jsId,  // 使用保存的 JavaScript ID
+                Name = layerItem.Name,
+                DataUrl = layerItem.ImageUrl,
+                Visible = layerItem.IsVisible
+            };
+            builtInLayers.Add(layer);
+            restoredCount++;
+
+
+        }
+
+
+        await Task.CompletedTask;
     }
 
     private async Task WindowChanged(ChangeEventArgs e)
@@ -334,13 +403,10 @@
         StateHasChanged();
     }
 
-    private async Task DownloadCanvas()
+    private async Task DownloadCanvasAsync()
     {
-        const int targetWidth = 7016;   // 橫向 A4 @ 600 DPI
-        const int targetHeight = 4961;
-
-        await JS.InvokeVoidAsync("downloadHighResA4", "myCanvas", targetWidth, targetHeight);
-        statusMessage = "💾 已下載圖片";
+        await JS.InvokeVoidAsync("downloadImage", "myCanvas");
+        statusMessage = "💾 已下載圖片 (PNG)";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -349,6 +415,7 @@
         {
             // register DotNet ref and ensure JS functions are available before calling
             dotNetRef = DotNetObjectReference.Create(this);
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/canvasStateInterop.js");
 
             // wait until registerDotNetRef exists (script tag may not have loaded yet)
             var maxMs = 3000;
@@ -378,34 +445,148 @@
 
             // ensure sortable is initialized after render
             try { await JS.InvokeVoidAsync("makeLayerListSortable", "layerList"); } catch { }
+            // 先載入 ES Module
+            if (module == null)
+            {
+                module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/canvasStateInterop.js");
+            }
 
             // now add built-in images via JS (do this after JS is ready)
-            try
+            // 判斷首次加載還是頁面返回的邏輯：
+            // 1. builtInLayers.Count == 0 && CanvasState.Layers.Count == 0 → 首次加載
+            // 2. builtInLayers.Count == 0 && CanvasState.Layers.Count > 0 → 頁面返回
+
+            if (builtInLayers.Count == 0 && CanvasState.Layers.Count == 0)
             {
-                await AddBuiltInImage("刀模", "images/window/抽拉換圖卡-A刀模.svg");
-                await AddBuiltInImage("定位", "images/window/抽拉換圖卡-A定位.svg");
+                // 首次進入頁面 → 初始化內建圖片
+
+                await AddBuiltInImageToState("刀模", "images/window/抽拉換圖卡-A刀模.svg", isBuiltIn: true);
+                await AddBuiltInImageToState("定位", "images/window/抽拉換圖卡-A定位.svg", isBuiltIn: true);
 
                 statusMessage = "✅ 已載入兩張內建圖片（固定最上層）";
-                modImageUrls.Add("images/window/抽拉換圖卡-A刀模.svg");
-                positionImageUrls.Add("images/window/抽拉換圖卡-A定位.svg");
-                modImageUrls.Add("images/window/抽拉換圖卡-B刀模.svg");
-                positionImageUrls.Add("images/window/抽拉換圖卡-B定位.svg");
-                modImageUrls.Add("images/window/抽拉換圖卡-C刀模.svg");
-                positionImageUrls.Add("images/window/抽拉換圖卡-C定位.svg");
-                modImageUrls.Add("images/window/抽拉換圖卡-D刀模.svg");
-                positionImageUrls.Add("images/window/抽拉換圖卡-D定位.svg");
+
+                // 初始化窗戶 URL 列表
+                InitializeWindowUrls();
                 StateHasChanged();
             }
-            catch
+            else if (builtInLayers.Count == 0 && CanvasState.Layers.Count > 0)
             {
-                // ignore if JS not ready; user can retry
+                // 頁面返回 → builtInLayers被清空, CanvasState有數據
+
+
+
+                // 在頁面返回時也確保 URL 列表被初始化
+                if (modImageUrls.Count == 0)
+                {
+                    InitializeWindowUrls();
+                }
+
+                // 重新填充 builtInLayers（從 CanvasState.Layers 中恢復）
+                await RestoreBuiltInLayers();
+
+
+                // 清空並還原 Canvas 狀態
+                await JS.InvokeVoidAsync("eval", "window.__ff14card_images && (window.__ff14card_images.length = 0);");
+                await JS.InvokeVoidAsync("clearCanvas", "myCanvas");
+
+                // 小延遲，確保 canvas 清空完成
+                await Task.Delay(100);
+
+                // 調用還原函數
+                var json = CanvasState.ExportToJson();
+
+                await module.InvokeVoidAsync("restoreCanvasState", json);
+
+                StateHasChanged();
             }
+
+            StateHasChanged();
         }
         else
         {
             // ensure sortable re-initialized after subsequent renders
             try { await JS.InvokeVoidAsync("makeLayerListSortable", "layerList"); } catch { }
         }
+    }
+
+    /// <summary>
+    /// 同時寫入 CanvasStateService + 呼叫原本的 JS 繪圖
+    /// </summary>
+    private async Task AddBuiltInImageToState(string name, string url, bool isBuiltIn = true)
+    {
+        // 先創建 Layer 對象（以獲取其 ID）
+        var layerObj = new Layer
+        {
+            Name = name,
+            DataUrl = url,
+            Visible = true
+        };
+
+        // 添加到本地列表
+        builtInLayers.Add(layerObj);
+
+        // 確保 canvas.js 已加載並初始化
+        try
+        {
+            await JS.InvokeVoidAsync("eval", "if (typeof init === 'function') init();");
+        }
+        catch { }
+
+        // 呼叫 JS 函式進行實際繪圖
+        await JS.InvokeVoidAsync("addFullSizeImage", "myCanvas", url, layerObj.Id, true);
+
+        // 1. 寫入 Service（讓切換頁面後能還原）
+        // 注意：這裡保存 Layer 的 ID 到 JsLayerId 確保 C# 和 JS 端的 ID 一致
+        var layerItem = new LayerItem
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            ImageUrl = url,
+            IsBuiltIn = isBuiltIn,
+            X = 150,
+            Y = 120,
+            Scale = 0.9,
+            Opacity = 1.0,
+            IsVisible = true,
+            ZIndex = CanvasState.Layers.Count,
+            JsLayerId = layerObj.Id  // 保存 JavaScript 側的圖層 ID
+        };
+        CanvasState.AddLayer(layerItem);
+    }
+
+    private async Task RestoreCanvasFromStateAsync()
+    {
+        if (module == null)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/canvas-interop.js");
+        }
+        // 把目前 Service 的狀態傳給 JS 還原
+        var json = CanvasState.ExportToJson();
+        await JS.InvokeVoidAsync("restoreCanvasState", json);
+    }
+
+    private async Task RedrawCanvasFromStateAsync()
+    {
+        if (module == null) return;
+        var json = CanvasState.ExportToJson();
+        await JS.InvokeVoidAsync("redrawCanvasFromState", json);
+    }
+
+    // 讓 JS 可以呼叫回來更新狀態（重要！）
+    [JSInvokable]
+    public async Task UpdateLayerFromJs(string jsonLayer)
+    {
+        var layer = JsonSerializer.Deserialize<LayerItem>(jsonLayer);
+        if (layer != null)
+        {
+            CanvasState.UpdateLayer(layer);
+        }
+    }
+
+    public void Dispose()
+    {
+        CanvasState.OnStateChanged -= StateHasChanged;
+        dotNetRef?.Dispose();
     }
 
     private void ToggleVisibilityHandler(Layer layer)

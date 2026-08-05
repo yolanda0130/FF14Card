@@ -1,18 +1,19 @@
-﻿let canvas, ctx;
-let images = [];
-let selectedImageId = null;
-let currentImage = null;
+﻿var canvas, ctx;
+var images = window.__ff14card_images || [];
+window.__ff14card_images = images;
+var selectedImageId = null;
+var currentImage = null;
 
 // 裁切相關
-let cropMode = false;
-let isCropping = false;
-let cropStart = null; // {x,y}
-let cropRect = null;  // {x,y,w,h}
-let cropDragging = false;
-let cropResizing = false;
-let cropResizeDir = null;
-let cropDragOffsetX = 0;
-let cropDragOffsetY = 0;
+var cropMode = false;
+var isCropping = false;
+var cropStart = null; // {x,y}
+var cropRect = null;  // {x,y,w,h}
+var cropDragging = false;
+var cropResizing = false;
+var cropResizeDir = null;
+var cropDragOffsetX = 0;
+var cropDragOffsetY = 0;
 
 function init() {
     canvas = document.getElementById('myCanvas');
@@ -180,11 +181,18 @@ window.sendToBack = function (canvasId, id) {
 window.addFullSizeImage = function (canvasId, dataUrl, id) {
     // backward-compatible: if 4th arg passed, treat as builtIn flag
     const builtIn = arguments.length >= 4 ? arguments[3] : false;
+
+    // 只有非內建圖片才受限於 images.length >= 2 的檢查
+    if (!builtIn && images.length >= 2) {
+        console.warn("已達到最大圖片數量限制（2）");
+        return;
+    }
+
     if (!canvas) init();
 
     const img = new Image();
     img.onload = function () {
-        console.log("圖片載入成功: " + id);
+
 
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
@@ -214,6 +222,9 @@ window.addFullSizeImage = function (canvasId, dataUrl, id) {
         normalizeZIndices();
         redraw();
     };
+    img.onerror = function () {
+        console.error("圖片載入失敗: " + dataUrl);
+    };
     img.src = dataUrl;
 };
 
@@ -222,7 +233,7 @@ window.replaceImage = function (canvasId, dataUrl, id) {
 
     const img = new Image();
     img.onload = function () {
-        console.log("圖片替換成功: " + id);
+
 
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
@@ -269,7 +280,7 @@ window.replaceImage = function (canvasId, dataUrl, id) {
 };
 
 window.clearCanvas = function () {
-    console.log("執行清除畫布 - 保留內建圖片");
+
 
     const keepCount = 2;   // 保留最後 3 張內建圖片
 
@@ -287,88 +298,71 @@ window.clearCanvas = function () {
 
 };
 
-window.downloadHighResA4 = function (canvasId, targetWidth, targetHeight) {
+// ===== 下載功能 =====
+// 直接下載 Canvas 原始尺寸的 PNG 圖片（不縮放）
+window.downloadImage = function (canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = targetWidth;
-    tempCanvas.height = targetHeight;
-    const tempCtx = tempCanvas.getContext('2d', { alpha: false });
+    // 創建與 Canvas 相同尺寸的新 Canvas（直接複製，不縮放）
+    const downloadCanvas = document.createElement('canvas');
+    downloadCanvas.width = canvas.width;
+    downloadCanvas.height = canvas.height;
+    const ctx = downloadCanvas.getContext('2d', { alpha: false });
 
-    tempCtx.fillStyle = '#ffffff';
-    tempCtx.fillRect(0, 0, targetWidth, targetHeight);
+    // 白色背景
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
 
-    const scale = Math.min(targetWidth / canvas.width, targetHeight / canvas.height) * 0.96;
-
-    const drawWidth = Math.round(canvas.width * scale);
-    const drawHeight = Math.round(canvas.height * scale);
-    let offsetX = Math.round((targetWidth - drawWidth) / 2);
-    const offsetY = Math.round((targetHeight - drawHeight) / 2);
-
-    // 使用中間畫布
-    const contentCanvas = document.createElement('canvas');
-    contentCanvas.width = drawWidth;
-    contentCanvas.height = drawHeight;
-    const contentCtx = contentCanvas.getContext('2d', { alpha: false });
-
-    contentCtx.fillStyle = '#ffffff';
-    contentCtx.fillRect(0, 0, drawWidth, drawHeight);
-
-    contentCtx.save();
-
-    // 左邊加強裁切（針對你左邊溢色的問題）
-    const insetLeft = 4;   // 左邊特別加大
-    const insetOther = 2;
-    contentCtx.beginPath();
-    contentCtx.rect(insetLeft, insetOther,
-        drawWidth - insetLeft - insetOther,
-        drawHeight - insetOther * 2);
-    contentCtx.clip();
-
-    contentCtx.imageSmoothingEnabled = true;
-    contentCtx.imageSmoothingQuality = 'high';
+    // 直接繪製所有圖片（按 zIndex 排序）
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const sortedImages = [...images].sort((a, b) => a.zIndex - b.zIndex);
 
-    sortedImages.forEach((img, index) => {
-        if (img.Name) return;
+    sortedImages.forEach((img) => {
+        if (img.Name) return;  // 跳過內建圖片
 
-        const newX = img.x * scale;
-        const newY = img.y * scale;
-        const newWidth = img.width * img.scale * scale;
-        const newHeight = img.height * img.scale * scale;
-
-        contentCtx.drawImage(img.element, newX, newY, newWidth, newHeight);
+        ctx.drawImage(img.element, img.x, img.y, img.width * img.scale, img.height * img.scale);
     });
-    contentCtx.restore();
 
-    // 最終貼上（再往右微調一點）
-    offsetX += 1;   // 左邊再推一點
-    tempCtx.drawImage(contentCanvas, offsetX, offsetY);
+    // 生成 PNG 資料
+    let dataUrl = downloadCanvas.toDataURL('image/png', 1.0);
 
-    // 下載
-    let dataUrl = tempCanvas.toDataURL('image/png', 1.0);
-
-    // 壓縮直到小於 15MB
+    // 壓縮直到小於 15MB（如果需要）
     let attempts = 0;
     while (dataUrl.length * 0.75 > 15 * 1024 * 1024 && attempts < 10) {
         attempts++;
-        dataUrl = tempCanvas.toDataURL('image/png', 1.0 - attempts * 0.08);
+        dataUrl = downloadCanvas.toDataURL('image/png', 1.0 - attempts * 0.1);
     }
 
+    // 生成檔名（包含日期時間）
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const filename = `FF14Card_${year}${month}${day}_${hours}${minutes}.png`;
+
+    // 下載
     const link = document.createElement('a');
-    link.download = `A4_橫式_${new Date().toISOString().slice(0, 10)}.png`;
+    link.download = filename;
     link.href = dataUrl;
     link.click();
 };
 
+// 保留舊的 downloadHighResA4 函數以兼容性
+window.downloadHighResA4 = function (canvasId, targetWidth, targetHeight) {
+    window.downloadImage(canvasId);
+};
+
 // ==================== 拖曳 + 四角/四邊調整 + 游標提示 ====================
-let isDragging = false;
-let isResizing = false;
-let resizeDirection = null;
-let selectedImage = null;
-let offsetX = 0, offsetY = 0;
+var isDragging = false;
+var isResizing = false;
+var resizeDirection = null;
+var selectedImage = null;
+var offsetX = 0, offsetY = 0;
 
 function onMouseDown(e) {
     if (!selectedImageId && !cropMode) return;
@@ -839,7 +833,7 @@ function onMouseUp() {
         cropStart = null;
         // 保留 cropRect 直到使用者按下套用或取消
         canvas.style.cursor = 'crosshair';
-        console.log('cropRect finalized', cropRect);
+
         redraw();
         return;
     }
@@ -849,7 +843,7 @@ function onMouseUp() {
         cropDragging = false;
         cropResizing = false;
         cropResizeDir = null;
-        console.log('crop interaction end', cropRect);
+
         redraw();
         // don't return; allow image drag state to reset below
     }
@@ -955,13 +949,13 @@ window.makeLayerListSortable = function (listId) {
     }
 
     // pointer-based sortable implementation (more reliable than HTML5 drag/drop)
-    let draggingEl = null;
-    let placeholder = null;
-    let ghost = null;
-    let isDragging = false;
-    let isPotentialDrag = false;
-    let pointerStartX = 0;
-    let pointerStartY = 0;
+    var draggingEl = null;
+   var placeholder = null;
+    var ghost = null;
+    var isDragging = false;
+    var isPotentialDrag = false;
+    var pointerStartX = 0;
+    var pointerStartY = 0;
     const DRAG_THRESHOLD = 6; // pixels
 
     function createPlaceholder(height, margin) {
@@ -1151,8 +1145,7 @@ function getDragAfterElement(container, y) {
 
 // 更新圖層順序（同步 Canvas 顯示順序）
 window.updateLayerOrder = function (newOrder) {
-    console.log("更新圖層順序 (newOrder):", newOrder);
-    console.log("images before reorder:", images.map(i=>i.id));
+
     // 重新建立 images 陣列：保持內建圖層（builtIn === true）在最前面，
     // 再依照 newOrder 排列使用者上傳的圖層，最後加入任何剩下的（安全保險）。
     const imageMap = {};
@@ -1252,10 +1245,16 @@ window.moveLayerDown = function (canvasId, id) {
 };
 
 window.toggleLayerVisibility = function (canvasId, id, isVisible) {
+    console.log("toggleLayerVisibility 被調用: id=", id, ", isVisible=", isVisible);
+    console.log("當前 images 陣列:", images.map(i => ({id: i.id, name: i.Name, visible: i.visible, builtIn: i.builtIn})));
+
     const img = images.find(i => i.id === id);
     if (img) {
+        console.log("找到圖層:", img.Name, "已將 visible 設為", isVisible);
         img.visible = isVisible;
         redraw();
+    } else {
+        console.error("無法找到 ID 為", id, "的圖層。可用 IDs:", images.map(i => i.id));
     }
 };
 
