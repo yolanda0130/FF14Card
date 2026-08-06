@@ -11,6 +11,35 @@ main[b-kzaox3y6q4] {
 
 .sidebar[b-kzaox3y6q4] {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    position: relative;
+    transition: width 0.3s ease;
+}
+
+.sidebar-toggle[b-kzaox3y6q4] {
+    position: absolute;
+    top: 50%;
+    right: -15px;
+    width: 30px;
+    height: 30px;
+    background: #3a0647;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover[b-kzaox3y6q4] {
+    background: rgb(5, 39, 103);
+    transform: scale(1.1);
+}
+
+.sidebar-toggle span[b-kzaox3y6q4] {
+    color: white;
+    font-size: 16px;
 }
 
 .top-row[b-kzaox3y6q4] {
@@ -57,6 +86,39 @@ main[b-kzaox3y6q4] {
         height: 100vh;
         position: sticky;
         top: 0;
+        overflow: hidden;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4] {
+        width: 60px;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4]  .top-row {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4]  .navbar-brand {
+        display: none;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4]  .nav-item {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4]  .nav-link {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4]  .bi {
+        margin-right: 0;
+    }
+
+    .sidebar.collapsed[b-kzaox3y6q4]  .nav-text {
+        display: none;
     }
 
     .top-row[b-kzaox3y6q4] {
@@ -179,24 +241,25 @@ main[b-kzaox3y6q4] {
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
     gap: 10px;
+    padding: 20px;
 }
 
 .canvas-section .status-message[b-atupuot717] {
     color: #0066ff;
     margin: 0;
     font-size: 14px;
-    align-self: flex-start;
+    width: 877px;
 }
 
 /* Canvas 畫布 */
 #myCanvas[b-atupuot717] {
     border: 2px solid #666;
     background: #ffffff;
-    max-width: 100%;
-    max-height: calc(100vh - 40px);
+    width: 877px;
+    height: 620px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border-radius: 12px;
 }
