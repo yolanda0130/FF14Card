@@ -1,0 +1,355 @@
+/* ImageCanvas.razor 專用 CSS */
+
+/* 主容器 */
+.image-canvas-container {
+    max-width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    box-sizing: border-box;
+}
+
+/* 左側畫布區域 */
+.canvas-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.canvas-section .status-message {
+    color: #0066ff;
+    margin: 0;
+    font-size: 14px;
+    align-self: flex-start;
+}
+
+/* Canvas 畫布 */
+#myCanvas {
+    border: 2px solid #666;
+    background: #ffffff;
+    max-width: 100%;
+    max-height: calc(100vh - 40px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+}
+
+/* 右側控制面板 */
+.control-panel {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 34px;
+    max-height: calc(100vh - 74px);
+    overflow: hidden;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+/* 通用框樣式 */
+.panel-box {
+    background: #E0E0E0;
+    border: none;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.panel-box h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #333;
+    font-weight: bold;
+}
+
+/* 標題框 */
+.title-box {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0 0 8px 0;
+    flex-shrink: 0;
+}
+
+.title-box h1 {
+    margin: 0;
+    font-size: 20px;
+    color: #333;
+}
+
+/* 上方兩個框並排 */
+.top-controls-row {
+    display: flex;
+    gap: 12px;
+    max-width: calc(100% - 62px);
+    flex-shrink: 0;
+}
+
+/* 刀模框 */
+.mold-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #E0E0E0;
+    border: none;
+}
+
+.builtin-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.builtin-layer-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.builtin-layer-item input[type="checkbox"] {
+    transform: scale(1.5);
+    cursor: pointer;
+}
+
+.builtin-layer-item span {
+    font-size: 12px;
+}
+
+/* 下拉選項框 */
+.selector-box {
+    flex: 1;
+    background: #E0E0E0;
+    border: none;
+}
+
+.window-select {
+    width: 100%;
+    padding: 6px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* 圖層列表區 + 右側按鈕 */
+.layers-row {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* 圖層列表大框 */
+.layers-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    background: #E0E0E0;
+    border: none;
+}
+
+/* 上傳圖片區 */
+.upload-section {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* 圖層列表 */
+#layerList {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.layer-item {
+    padding: 8px;
+    margin: 4px 0;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+    font-size: 13px;
+}
+
+.layer-item:hover {
+    background: #f0f0f0;
+}
+
+.layer-item.selected {
+    background: #cce6ff;
+    border-color: #0066ff;
+}
+
+.layer-visibility-icon {
+    margin-right: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.layer-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selected-indicator {
+    color: #0066ff;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* 裁切按鈕區 */
+.crop-section {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.crop-button,
+.apply-crop-button,
+.cancel-crop-button {
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    border: 1px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.crop-button {
+    background: #FCFCFC;
+    color: black;
+    border-color: #FCFCFC;
+}
+
+.crop-button:hover {
+    background: #FCFCFC;
+}
+
+.apply-crop-button {
+    background: #2196F3;
+    color: white;
+    border-color: #0b7dda;
+}
+
+.apply-crop-button:hover:not(:disabled) {
+    background: #0b7dda;
+}
+
+.apply-crop-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.cancel-crop-button {
+    background: #f44336;
+    color: white;
+    border-color: #da190b;
+}
+
+.cancel-crop-button:hover {
+    background: #da190b;
+}
+
+/* 右側按鈕組(垂直排列) */
+.side-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.side-buttons button {
+    height: 50px;
+    font-size: 18px;
+    border: 2px solid #666;
+    border-radius: 6px;
+    background: #f0f0f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.side-buttons button:hover {
+    background: #e0e0e0;
+    transform: scale(1.05);
+}
+
+.side-buttons .delete-button {
+    background: #ff4444;
+    color: white;
+    border-color: #cc0000;
+}
+
+.side-buttons .delete-button:hover {
+    background: #cc0000;
+}
+
+/* 下方操作按鈕框 */
+.action-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: calc(100% - 62px);
+    flex-shrink: 0;
+    background: #E0E0E0;
+    border: none;
+}
+
+.action-button {
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    border: 2px solid #666;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clear-button {
+    background: #FCFCFC;
+    color: black;
+    border-color: #FCFCFC;
+}
+
+.clear-button:hover {
+    background:#FCFCFC;
+    transform: scale(1.02);
+}
+
+.download-button {
+    background: #FCFCFC;
+    color: black;
+    border-color: #FCFCFC;
+}
+
+.download-button:hover {
+    background: #FCFCFC;
+    transform: scale(1.02);
+}

@@ -280,14 +280,8 @@ window.replaceImage = function (canvasId, dataUrl, id) {
 };
 
 window.clearCanvas = function () {
-
-
-    const keepCount = 2;   // 保留最後 3 張內建圖片
-
-    if (images.length > keepCount) {
-        // 保留最後 keepCount 張，清除前面的
-        images = images.slice(images.length - keepCount);
-    }
+    // 只保留內建圖片 (builtIn === true)
+    images = images.filter(img => img.builtIn === true);
 
     selectedImageId = null;
 
@@ -295,7 +289,6 @@ window.clearCanvas = function () {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         redraw();   // 重新繪製內建圖片
     }
-
 };
 
 // ===== 下載功能 =====

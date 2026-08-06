@@ -10,82 +10,108 @@
 
 <script src="js/canvas.js"></script>
 
-<div style="max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; gap: 20px;">
+<div class="image-canvas-container">
     <!-- 左側畫布 -->
-    <div style="flex: 1;">
-        <h1>🖼️ 圖片拖曳畫布 (多圖層)</h1>
-
-        <InputFile OnChange="HandleFileSelected" accept="image/*" style="margin-bottom: 10px;" />
-        <button @onclick="ClearCanvas">🗑️ 清除全部</button>
-        <button @onclick="DownloadCanvasAsync">💾 下載圖片</button>
-        <button @onclick="ToggleCropMode">✂️ 裁切模式</button>
-        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" hidden="@(!cropMode)">✅ 套用裁切</button>
-        <button @onclick="CancelCrop" hidden="@(!cropMode)">取消裁切</button>
-
-        <p style="color: #0066ff; margin: 10px 0;">@statusMessage</p>
-
-        <canvas id="myCanvas" width="7016" height="4961"
-                style="border: 2px solid #666; background: #ffffff; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"></canvas>
+    <div class="canvas-section">
+        <p class="status-message">@statusMessage</p>
+        <canvas id="myCanvas" width="7016" height="4961"></canvas>
     </div>
-<!-- 右側圖層面板 -->
-<div style="width: 300px; background: #f9f9f9; padding: 15px; border-radius: 8px; max-height: 700px; overflow-y: auto;">
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            @foreach (var builtIn in builtInLayers)
-            {
-                @if(builtIn.Name != "定位")               
-                {
-                    <div style="display: flex; align-items: center; margin: 8px 0;">
-                        <input type="checkbox" checked="@builtIn.Visible"
-                               @onchange="() => CheckboxToggleBuiltInVisibility(builtIn)"
-                               style="margin-right: 10px; transform: scale(1.3);" />
-                        <span>@builtIn.Name</span>
-                    </div>
-                }
 
-            }
+    <!-- 右側控制面板 -->
+    <div class="control-panel">
+        <!-- 標題框 -->
+        <div class="panel-box title-box">
+            <h1>🖼️ 圖片拖曳畫布</h1>
         </div>
-    <h3>📚 圖層列表 (@userLayers.Count 張)</h3>
-        <div style="margin-bottom: 20px;">
-            <label><strong>選擇想要的窗戶：</strong></label><br>
-            <select @onchange="WindowChanged"
-                    style="padding: 10px; font-size: 16px; width: 200px;">
-                <option value="0">A</option>
-                <option value="1">B</option>
-                <option value="2">C</option>
-                <option value="3">D</option>
-            </select>
-        </div>
-    <div style="margin-bottom: 12px;">
-        <button @onclick="BringToFront">↑ 上一層</button>
-        <button @onclick="SendToBack">↓ 下一層</button>
-        <button @onclick="DeleteSelected" style="background: #ff4444; color: white;">🗑️ 刪除</button>
-    </div>
-        <ul id="layerList" style="list-style: none; padding: 0;">
-            @foreach (var layer in userLayers)
-            {
-                <li class="layer-item" data-id="@layer.Id"
-                    @onclick="() => SelectLayer(layer)"
-                    style="padding: 10px; margin: 6px 0; background: @(selectedLayer == layer ? "#cce6ff" : "#fff");
-                    border: 1px solid #ddd; border-radius: 6px; cursor: grab; display: flex; align-items: center;">
 
-                    <!-- 眼睛圖示 -->
-                    <span @onclick="() => { ToggleVisibility(layer); }"
-                          @onclick:stopPropagation
-                          style="margin-right: 8px; font-size: 18px; cursor: pointer; width: 24px;">
-                        @(layer.Visible ? "👁️" : "🙈")
-                    </span>
-
-                    <span style="flex: 1;">📄 @layer.Name</span>
-
-                    @if (selectedLayer == layer)
+        <!-- 刀模和下拉選項兩個框 -->
+        <div class="top-controls-row">
+            <!-- 刀模框 -->
+            <div class="panel-box mold-box">
+                <div class="builtin-layers">
+                    @foreach (var builtIn in builtInLayers)
                     {
-                        <span style="color: #0066ff;">●</span>
+                        @if(builtIn.Name != "定位")               
+                        {
+                            <div class="builtin-layer-item">
+                                <input type="checkbox" checked="@builtIn.Visible"
+                                       @onchange="() => CheckboxToggleBuiltInVisibility(builtIn)" />
+                                <span>@builtIn.Name</span>
+                            </div>
+                        }
                     }
-                </li>
-            }
-        </ul>
-        <!-- No-op patch: updated file in workspace after removing draggable attributes -->
-</div>
+                </div>
+            </div>
+
+            <!-- 下拉選項框 -->
+            <div class="panel-box selector-box">
+                <select @onchange="WindowChanged" class="window-select">
+                    <option value="0">A</option>
+                    <option value="1">B</option>
+                    <option value="2">C</option>
+                    <option value="3">D</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 圖層列表區 + 右側按鈕 -->
+        <div class="layers-row">
+            <!-- 圖層列表大框 -->
+            <div class="panel-box layers-box">
+                <!-- 上傳圖片 -->
+                <div class="upload-section">
+                    <InputFile OnChange="HandleFileSelected" accept="image/*" />
+                </div>
+
+                <!-- 圖層列表 -->
+                <h4>📚 圖層列表 (@userLayers.Count 張)</h4>
+                <ul id="layerList">
+                    @foreach (var layer in userLayers)
+                    {
+                        <li class="layer-item @(selectedLayer == layer ? "selected" : "")" data-id="@layer.Id"
+                            @onclick="() => SelectLayer(layer)">
+                            <span class="layer-visibility-icon"
+                                  @onclick="() => { ToggleVisibility(layer); }"
+                                  @onclick:stopPropagation>
+                                @(layer.Visible ? "👁️" : "🙈")
+                            </span>
+                            <span class="layer-name">📄 @layer.Name</span>
+                            @if (selectedLayer == layer)
+                            {
+                                <span class="selected-indicator">●</span>
+                            }
+                        </li>
+                    }
+                </ul>
+
+                <!-- 裁切按鈕 -->
+                <div class="crop-section">
+                    @if (!cropMode)
+                    {
+                        <button @onclick="ToggleCropMode" class="crop-button">✂️ 裁切模式</button>
+                    }
+                    else
+                    {
+                        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" class="apply-crop-button">✅ 套用裁切</button>
+                        <button @onclick="CancelCrop" class="cancel-crop-button">❌ 取消裁切</button>
+                    }
+                </div>
+            </div>
+
+            <!-- 右側按鈕組 -->
+            <div class="side-buttons">
+                <button @onclick="BringToFront" title="上一層">↑</button>
+                <button @onclick="SendToBack" title="下一層">↓</button>
+                <button @onclick="DeleteSelected" class="delete-button" title="刪除">🗑️</button>
+            </div>
+        </div>
+
+        <!-- 下方操作按鈕框 -->
+        <div class="panel-box action-box">
+            <button @onclick="ClearCanvas" class="action-button clear-button">🗑️ 清除全部</button>
+            <button @onclick="DownloadCanvasAsync" class="action-button download-button">💾 下載圖片</button>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -396,10 +422,14 @@
 
     private async Task ClearCanvas()
     {
+        // 只清除用戶上傳的圖片,保留內建圖片
         userLayers.Clear();
         selectedLayer = null;
+
+        // JS 的 clearCanvas 會自動保留 builtIn 圖片並重繪
         await JS.InvokeVoidAsync("clearCanvas", "myCanvas");
-        statusMessage = "畫布已清除";
+
+        statusMessage = "已清除上傳的圖片";
         StateHasChanged();
     }
 
