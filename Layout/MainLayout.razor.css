@@ -10,6 +10,35 @@ main {
 
 .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    position: relative;
+    transition: width 0.3s ease;
+}
+
+.sidebar-toggle {
+    position: absolute;
+    top: 50%;
+    right: -15px;
+    width: 30px;
+    height: 30px;
+    background: #3a0647;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    background: rgb(5, 39, 103);
+    transform: scale(1.1);
+}
+
+.sidebar-toggle span {
+    color: white;
+    font-size: 16px;
 }
 
 .top-row {
@@ -56,6 +85,39 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+        overflow: hidden;
+    }
+
+    .sidebar.collapsed {
+        width: 60px;
+    }
+
+    .sidebar.collapsed ::deep .top-row {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed ::deep .navbar-brand {
+        display: none;
+    }
+
+    .sidebar.collapsed ::deep .nav-item {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed ::deep .nav-link {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sidebar.collapsed ::deep .bi {
+        margin-right: 0;
+    }
+
+    .sidebar.collapsed ::deep .nav-text {
+        display: none;
     }
 
     .top-row {
