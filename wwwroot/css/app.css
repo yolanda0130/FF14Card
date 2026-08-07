@@ -121,6 +121,9 @@ code {
     background-color: #f8f9fa;
     color: #666;
     font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+    align-self: stretch;
 }
 
 .footer .container {
