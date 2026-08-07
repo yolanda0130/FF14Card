@@ -258,6 +258,25 @@ main[b-kzaox3y6q4] {
     font-size: 14px;
     width: 877px;
 }
+.button-group[b-atupuot717] {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    margin-top: 20px;
+}
+.instructions-button[b-atupuot717] {
+    padding: 8px 30px;
+    font-size: 13px;
+    font-weight: bold;
+    background: #FCFCFC;
+    color: black;
+    border-color: #FCFCFC;
+}
+.instructions-button:hover[b-atupuot717] {
+    background: #FCFCFC;
+    transform: scale(1.02);
+}
 
 /* Canvas 畫布 */
 #myCanvas[b-atupuot717] {
@@ -583,4 +602,10 @@ main[b-kzaox3y6q4] {
 .download-button:hover[b-atupuot717] {
     background: #FCFCFC;
     transform: scale(1.02);
+}
+
+.modal-body img[b-atupuot717] {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
 }
