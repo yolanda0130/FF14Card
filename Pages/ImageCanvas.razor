@@ -13,8 +13,12 @@
 <div class="image-canvas-container">
     <!-- 左側畫布 -->
     <div class="canvas-section">
-        <p class="status-message">@statusMessage</p>
+       @* <p class="status-message">@statusMessage</p>*@
         <canvas id="myCanvas" width="3508" height="2480"></canvas>
+        <div class="button-group">
+            <button class="instructions-button" @onclick='() => ShowModal("使用方式")'>使用方式</button>
+            <button class="instructions-button" @onclick='() => ShowModal("製作方式")'>製作方式</button>
+        </div>
     </div>
 
     <!-- 右側控制面板 -->
@@ -113,7 +117,27 @@
         </div>
     </div>
 </div>
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
 
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+
+                <div class="modal-body text-center">
+                    <img src="@modalImage" class="img-fluid" />
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop fade show"></div>
+}
 @code {
     private string statusMessage = "✅ 準備就緒！請上傳圖片";
     private List<Layer> builtInLayers = new();   // 內建圖片
@@ -127,6 +151,10 @@
     private bool IsCropAvailable => cropMode && selectedLayer != null;
     private DotNetObjectReference<ImageCanvas>? dotNetRef;// 改成你的 class 名稱
     private IJSObjectReference? module;
+
+    private bool showModal = false;
+    private string modalTitle = "";
+    private string modalImage = "";
 
     [JSInvokable]
     public void ReceiveLayerOrder(string[] newOrder)
@@ -182,11 +210,13 @@
         {
             await JS.InvokeVoidAsync("enableCropMode", "myCanvas");
             statusMessage = "✂️ 裁切模式啟用：請拖曳在畫布上畫出裁切框，完成後按「套用裁切」";
+            Console.WriteLine(statusMessage);
         }
         else
         {
             await JS.InvokeVoidAsync("disableCropMode", "myCanvas");
             statusMessage = "✅ 已離開裁切模式";
+            Console.WriteLine(statusMessage);
         }
         StateHasChanged();
     }
@@ -199,6 +229,7 @@
         cropMode = false;
         await JS.InvokeVoidAsync("disableCropMode", "myCanvas");
         statusMessage = "✂️ 已套用裁切";
+        Console.WriteLine(statusMessage);
         StateHasChanged();
     }
 
@@ -207,6 +238,7 @@
         cropMode = false;
         await JS.InvokeVoidAsync("disableCropMode", "myCanvas");
         statusMessage = "已取消裁切";
+        Console.WriteLine(statusMessage);
         StateHasChanged();
     }
 
@@ -307,7 +339,7 @@
     private async Task WindowChanged(ChangeEventArgs e)
     {
         var selectedValue = int.TryParse(e.Value?.ToString(), out int result);
-     
+
         var modid = builtInLayers.FirstOrDefault(l => l.Name == "刀模")?.Id;
         var positionid = builtInLayers.FirstOrDefault(l => l.Name == "定位")?.Id;
         if (selectedValue)
@@ -318,6 +350,7 @@
         else
         {
             statusMessage = "❌ 選擇的窗戶無效 請截圖告知開發人員";
+            Console.WriteLine(statusMessage);
         }
     }
 
@@ -350,11 +383,13 @@
             await JS.InvokeVoidAsync("setSelectedLayer", layer.Id);
 
             statusMessage = $"✅ 已加入 {file.Name}";
+            Console.WriteLine(statusMessage);
             StateHasChanged();
         }
         catch (Exception ex)
         {
             statusMessage = $"❌ 上傳失敗：{ex.Message}";
+            Console.WriteLine(statusMessage);
         }
     }
 
@@ -418,6 +453,7 @@
 
         StateHasChanged();
         statusMessage = "🗑️ 已刪除";
+        Console.WriteLine(statusMessage);
     }
 
     private async Task ClearCanvas()
@@ -430,6 +466,7 @@
         await JS.InvokeVoidAsync("clearCanvas", "myCanvas");
 
         statusMessage = "已清除上傳的圖片";
+        Console.WriteLine(statusMessage);
         StateHasChanged();
     }
 
@@ -437,6 +474,7 @@
     {
         await JS.InvokeVoidAsync("downloadImage", "myCanvas");
         statusMessage = "💾 已下載圖片 (PNG)";
+        Console.WriteLine(statusMessage);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -494,6 +532,7 @@
                 await AddBuiltInImageToState("定位", "images/window/抽拉換圖卡-A定位.svg", isBuiltIn: true);
 
                 statusMessage = "✅ 已載入兩張內建圖片（固定最上層）";
+                Console.WriteLine(statusMessage);
 
                 // 初始化窗戶 URL 列表
                 InitializeWindowUrls();
@@ -646,5 +685,24 @@
         layer.Visible = !layer.Visible;
         JS.InvokeVoidAsync("toggleLayerVisibility", "myCanvas", layer.Id, layer.Visible);
         StateHasChanged();
+    }
+
+    private void ShowModal(string text)
+    {
+        modalTitle = text;
+        if (text == "使用方式")
+        {
+            modalImage = "images/use.jpg";
+        }
+        else if (text == "製作方式")
+        {
+            modalImage = "images/make.jpg";
+        }
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
     }
 }
