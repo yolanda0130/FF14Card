@@ -423,7 +423,7 @@ main[b-kzaox3y6q4] {
     padding: 0;
     margin: 10px 0;
     overflow-y: auto;
-    height: 300px;
+    height: 270px;
     flex-shrink: 0;
 }
 
@@ -477,6 +477,7 @@ main[b-kzaox3y6q4] {
     gap: 6px;
     margin-top: 10px;
     padding-top: 10px;
+    padding-bottom: 10px;
     border-top: 1px solid #ddd;
 }
 
