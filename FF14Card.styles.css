@@ -238,6 +238,7 @@ main[b-kzaox3y6q4] {
     display: flex;
     gap: 20px;
     box-sizing: border-box;
+    align-items: flex-start;
 }
 
 /* 左側畫布區域 */
@@ -294,8 +295,8 @@ main[b-kzaox3y6q4] {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding-top: 34px;
-    max-height: calc(100vh - 10px);
+    padding-top: 0;
+    max-height: calc(100vh - 20px);
     overflow: hidden;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -422,7 +423,8 @@ main[b-kzaox3y6q4] {
     padding: 0;
     margin: 10px 0;
     overflow-y: auto;
-    flex: 1;
+    height: 300px;
+    flex-shrink: 0;
 }
 
 .layer-item[b-atupuot717] {
