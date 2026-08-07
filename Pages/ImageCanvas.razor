@@ -440,9 +440,6 @@
     {
         if (selectedLayer == null) return;
 
-        if (!await JS.InvokeAsync<bool>("confirm", $"確定刪除「{selectedLayer.Name}」？"))
-            return;
-
         await JS.InvokeVoidAsync("deleteLayer", "myCanvas", selectedLayer.Id);
 
         userLayers.Remove(selectedLayer);
@@ -458,6 +455,9 @@
 
     private async Task ClearCanvas()
     {
+        if (!await JS.InvokeAsync<bool>("confirm", "確定要清除所有上傳的圖片嗎？"))
+            return;
+
         // 只清除用戶上傳的圖片,保留內建圖片
         userLayers.Clear();
         selectedLayer = null;
