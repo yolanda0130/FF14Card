@@ -21,7 +21,7 @@
     <div class="control-panel">
         <!-- 標題框 -->
         <div class="panel-box title-box">
-            <h1>🖼️ 抽拉換圖卡</h1>
+            <h1>抽拉換圖卡</h1>
         </div>
 
         <!-- 刀模和下拉選項兩個框 -->
@@ -64,7 +64,7 @@
                 </div>
 
                 <!-- 圖層列表 -->
-                <h4>📚 圖層列表 (@userLayers.Count 張)</h4>
+                <h4>圖層列表 (@userLayers.Count 張)</h4>
                 <ul id="layerList">
                     @foreach (var layer in userLayers)
                     {
@@ -92,8 +92,8 @@
                     }
                     else
                     {
-                        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" class="apply-crop-button">✅ 套用裁切</button>
-                        <button @onclick="CancelCrop" class="cancel-crop-button">❌ 取消裁切</button>
+                        <button @onclick="ApplyCrop" disabled="@(!IsCropAvailable)" class="apply-crop-button">套用裁切</button>
+                        <button @onclick="CancelCrop" class="cancel-crop-button">取消裁切</button>
                     }
                 </div>
             </div>
