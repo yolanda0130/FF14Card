@@ -113,3 +113,23 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.footer {
+    margin-top: 40px;
+    padding: 24px;
+    border-top: 1px solid #ddd;
+    background-color: #f8f9fa;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.footer .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px; /* 兩個文字之間的距離 */
+}
+
+.footer p {
+    margin: 0;
+}
