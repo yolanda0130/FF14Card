@@ -1,12 +1,14 @@
 ﻿@inherits LayoutComponentBase
 <div class="page">
+    @if (showSidebar)
+{
     <div class="sidebar @(sidebarCollapsed ? "collapsed" : "")">
         <div class="sidebar-toggle" @onclick="ToggleSidebar">
             <span class="bi @(sidebarCollapsed ? "bi-chevron-right" : "bi-chevron-left")"></span>
         </div>
         <NavMenu />
     </div>
-
+}
     <main>
         <div class="top-row px-4">
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
@@ -15,12 +17,19 @@
         <article class="content px-4">
             @Body
         </article>
+        <footer class="footer">
+            <div class="container">
+                <p>聯絡資訊: </p>
+                <p>DC: reiko_96 / lunanewmoon</p>
+                <p>噗浪: reiko_nanoha / kk010300</p>
+            </div>
+        </footer>
     </main>
 </div>
 
 @code {
     private bool sidebarCollapsed = false;
-
+    bool showSidebar = false;
     private void ToggleSidebar()
     {
         sidebarCollapsed = !sidebarCollapsed;

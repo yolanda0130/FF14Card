@@ -1,7 +1,84 @@
-﻿@page "/FF14Card"
+﻿@page "/home"
+<PageTitle>首頁</PageTitle>
 
-<PageTitle>Home</PageTitle>
+<div class="welcome-container">
+    <div class="welcome-card">
+        <h1 class="title">歡迎來到製作抽拉換圖卡的網站</h1>
 
-<h1>Hello, world!</h1>
+        <p class="description">
+            操作上有任何問題或建議，請聯絡開發人員，有希望我們製作的網站也可以提供想法！
+        </p>
 
-Welcome to your new app.
+        <div class="contact-section">
+            <h3>聯絡資訊</h3>
+            <ul class="contact-list">
+                <li><span class="label">DC:</span> reiko_96 / lunanewmoon</li>
+                <li><span class="label">噗浪:</span> reiko_nanoha / kk010300</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .welcome-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        background-color: #f4f7f6;
+        font-family: sans-serif;
+    }
+
+    .welcome-card {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .title {
+        color: #333;
+        font-size: 28px;
+        margin-bottom: 20px;
+    }
+
+    .description {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+
+    .contact-section {
+        background: #fafafa;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: left;
+    }
+
+    .contact-section h3 {
+        font-size: 18px;
+        color: #444;
+        margin-bottom: 10px;
+    }
+
+    .contact-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .contact-list li {
+        margin-bottom: 8px;
+        color: #555;
+    }
+
+    .label {
+        font-weight: bold;
+        color: #222;
+        margin-right: 8px;
+    }
+</style>
