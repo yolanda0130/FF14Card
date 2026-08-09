@@ -44,6 +44,7 @@
     background: #FCFCFC;
     color: black;
     border-color: #FCFCFC;
+    border-radius: 100px;
 }
 .instructions-button:hover {
     background: #FCFCFC;
@@ -52,12 +53,12 @@
 
 /* Canvas 畫布 */
 #myCanvas {
-    border: 2px solid #666;
-    background: #ffffff;
+    /*border: 2px solid #666;*/
+    background: rgba(255, 255, 255, 0.9);
     width: 877px;
     height: 620px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border-radius: 12px;
+    box-shadow: 0 0.5px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
 }
 
 /* 右側控制面板 */
@@ -77,9 +78,9 @@
 .panel-box {
     background: #E0E0E0;
     border: none;
-    border-radius: 8px;
+    border-radius: 20px;
     padding: 15px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0.5px 5px rgba(0, 0, 0, 0.1);
 }
 
 .panel-box h4 {
@@ -119,7 +120,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #E0E0E0;
+    background: #F2F2F2;
     border: none;
 }
 
@@ -149,7 +150,7 @@
 /* 下拉選項框 */
 .selector-box {
     flex: 1;
-    background: #E0E0E0;
+    background: #F2F2F2;
     border: none;
 }
 
@@ -177,7 +178,7 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
-    background: #E0E0E0;
+    background: #F2F2F2;
     border: none;
 }
 
@@ -201,9 +202,9 @@
 .layer-item {
     padding: 8px;
     margin: 4px 0;
-    background: #f9f9f9;
+    background: #FFFFFF;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 100px;
     cursor: grab;
     display: flex;
     align-items: center;
@@ -216,8 +217,8 @@
 }
 
 .layer-item.selected {
-    background: #cce6ff;
-    border-color: #0066ff;
+    background: #aab9eb;
+    border-color: #aab9eb;
 }
 
 .layer-visibility-icon {
@@ -240,6 +241,7 @@
     color: #0066ff;
     font-size: 12px;
     flex-shrink: 0;
+    display: none;
 }
 
 /* 裁切按鈕區 */
@@ -259,7 +261,7 @@
     padding: 8px;
     font-size: 13px;
     border: 1px solid #666;
-    border-radius: 4px;
+    border-radius: 100px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -275,13 +277,13 @@
 }
 
 .apply-crop-button {
-    background: #2196F3;
+    background: #aab9eb;
     color: white;
-    border-color: #0b7dda;
+    border-color: #87a0e1;
 }
 
 .apply-crop-button:hover:not(:disabled) {
-    background: #0b7dda;
+    background: #87a0e1;
 }
 
 .apply-crop-button:disabled {
@@ -291,13 +293,13 @@
 }
 
 .cancel-crop-button {
-    background: #f44336;
+    background: #edaea7;
     color: white;
-    border-color: #da190b;
+    border-color: #d7786e;
 }
 
 .cancel-crop-button:hover {
-    background: #da190b;
+    background: #d7786e;
 }
 
 /* 右側按鈕組(垂直排列) */
@@ -307,16 +309,18 @@
     gap: 8px;
     width: 50px;
     flex-shrink: 0;
+    box-shadow: none;
 }
 
 .side-buttons button {
     height: 50px;
-    font-size: 18px;
-    border: 2px solid #666;
-    border-radius: 6px;
+    font-size: 18px; 
+    border-radius: 100px;
     background: #f0f0f0;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: none;
+    border: none;
 }
 
 .side-buttons button:hover {
@@ -325,13 +329,13 @@
 }
 
 .side-buttons .delete-button {
-    background: #ff4444;
+    background: #edaea7;
     color: white;
-    border-color: #cc0000;
+    border-color: #d7786e;
 }
 
 .side-buttons .delete-button:hover {
-    background: #cc0000;
+    background: #d7786e;
 }
 
 /* 下方操作按鈕框 */
@@ -341,7 +345,7 @@
     gap: 8px;
     max-width: calc(100% - 62px);
     flex-shrink: 0;
-    background: #E0E0E0;
+    background: #F2F2F2;
     border: none;
 }
 
@@ -351,7 +355,7 @@
     font-size: 13px;
     font-weight: bold;
     border: 2px solid #666;
-    border-radius: 6px;
+    border-radius: 100px;
     cursor: pointer;
     transition: all 0.2s;
 }

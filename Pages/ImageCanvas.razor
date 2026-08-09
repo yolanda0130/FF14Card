@@ -14,7 +14,7 @@
     <!-- 左側畫布 -->
     <div class="canvas-section">
        @* <p class="status-message">@statusMessage</p>*@
-        <canvas id="myCanvas" width="3508" height="2480"></canvas>
+        <canvas id="myCanvas" width="4210" height="2977"></canvas>
         <div class="button-group">
             <button class="instructions-button" @onclick='() => ShowModal("使用方式")'>使用方式</button>
             <button class="instructions-button" @onclick='() => ShowModal("製作方式")'>製作方式</button>
@@ -24,9 +24,9 @@
     <!-- 右側控制面板 -->
     <div class="control-panel">
         <!-- 標題框 -->
-        <div class="panel-box title-box">
+@*         <div class="panel-box title-box">
             <h1>抽拉換圖卡</h1>
-        </div>
+        </div> *@
 
         <!-- 刀模和下拉選項兩個框 -->
         <div class="top-controls-row">
@@ -79,7 +79,7 @@
                                   @onclick:stopPropagation>
                                 @(layer.Visible ? "👁️" : "🙈")
                             </span>
-                            <span class="layer-name">📄 @layer.Name</span>
+                            <span class="layer-name"> @layer.Name</span>
                             @if (selectedLayer == layer)
                             {
                                 <span class="selected-indicator">●</span>
