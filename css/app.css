@@ -136,3 +136,14 @@ code {
 .footer p {
     margin: 0;
 }
+
+@font-face {
+    font-family: 'JFFont';
+    src: url('../fonts/jf-openhuninn-2.1.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'JFFont', sans-serif;
+}
